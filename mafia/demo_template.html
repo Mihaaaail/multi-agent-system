@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мафия с уликами · Разбор партии</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --page: #10141e;
+    --panel: #181f2c;
+    --line: #303b4f;
+    --text: #f3eee3;
+    --muted: #b4bed0;
+    --amber: #f0ce85;
+    --mint: #a1ddcb;
+    --rose: #ffb4ae;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 1160px; margin: auto; padding: 40px 26px 48px; }
+  header { margin-bottom: 25px; }
+  .kicker { color: var(--amber); font-size: 12px; font-weight: 750; letter-spacing: .09em; }
+  h1 { margin: 5px 0 3px; font-family: Georgia, serif; font-size: clamp(32px, 6vw, 54px); font-weight: 500; line-height: 1.14; }
+  h2 { margin: 0; font-size: 19px; font-weight: 700; }
+  p { margin: 0; }
+  .muted, .hint { color: var(--muted); }
+  .hint { font-size: 13px; margin-top: 8px; }
+  .controls, .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  .controls { display: grid; grid-template-columns: minmax(220px, 2fr) minmax(240px, 1fr); gap: 12px 24px; padding: 17px; }
+  label { font-size: 13px; color: var(--muted); }
+  select, button { font: inherit; color: var(--text); background: var(--page); border: 1px solid var(--line); border-radius: 7px; }
+  select { display: block; width: 100%; margin-top: 4px; padding: 9px; }
+  button { padding: 7px 12px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--muted); }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+  button:disabled { opacity: .43; cursor: default; }
+  .toggle { display: flex; align-items: center; gap: 8px; align-self: end; min-height: 41px; }
+  input { accent-color: var(--amber); }
+  nav { display: flex; flex-wrap: wrap; gap: 7px; grid-column: 1 / -1; }
+  nav button[aria-current="step"] { background: var(--amber); border-color: var(--amber); color: #272117; font-weight: 700; }
+  .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+  .metric { min-width: 0; border-top: 1px solid var(--line); padding: 9px 3px 0; }
+  .metric strong { display: block; color: var(--amber); font-size: 22px; font-variant-numeric: tabular-nums; }
+  .metric span { color: var(--muted); font-size: 12px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 16px; align-items: start; }
+  .panel { min-width: 0; padding: 16px; }
+  .heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .people { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+  .person { min-width: 0; min-height: 81px; background: var(--page); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .person.chosen { border-color: var(--amber); }
+  .person strong { display: block; overflow-wrap: anywhere; }
+  .person span { display: block; color: var(--muted); font-size: 12px; }
+  .person .mafia, .suspect { color: var(--rose); }
+  .person .cleared { color: var(--mint); }
+  .turn { display: flex; flex: none; gap: 6px; }
+  .turn button { padding: 4px 9px; }
+  .events { max-height: 600px; overflow: auto; margin-top: 13px; padding-right: 4px; }
+  .phase { color: var(--amber); text-transform: uppercase; font-size: 11px; letter-spacing: .08em; margin: 11px 0 3px; }
+  .event { padding: 7px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  .event small { margin-left: 6px; color: var(--muted); font-size: 11px; }
+  .event:first-child { padding-top: 0; }
+  @media (max-width: 780px) {
+    main { padding: 24px 13px 36px; }
+    .controls, .layout { grid-template-columns: 1fr; }
+    .toggle { min-height: auto; }
+    .metrics { gap: 8px; }
+    .panel { padding: 12px; }
+    .events { max-height: none; }
+  }
+</style>
+<main>
+  <header>
+    <p class="kicker">ТЕОРИЯ МНОГОАГЕНТНЫХ СИСТЕМ</p>
+    <h1>Мафия с уликами</h1>
+    <p class="muted">Разбор партий с одинаковыми ролями и начальными уликами.</p>
+  </header>
+  <section class="controls" aria-label="Управление просмотром">
+    <label for="preset">Правила партии<select id="preset"></select></label>
+    <label class="toggle"><input type="checkbox" id="reveal"> Показать тайные роли, сговор и бюллетени</label>
+    <nav id="steps" aria-label="Дни партии"></nav>
+  </section>
+  <section class="metrics" aria-label="Состояние партии">
+    <div class="metric"><strong id="clue-count"></strong><span>Ночных улик принято</span></div>
+    <div class="metric"><strong id="traffic"></strong><span>Доставлено сообщений</span></div>
+    <div class="metric"><strong id="changed"></strong><span>Раз сменилось намерение голосовать</span></div>
+  </section>
+  <div class="layout">
+    <section class="panel">
+      <div class="heading"><h2>Игроки</h2><span class="hint" id="seed"></span></div>
+      <p class="hint">Начальная улика и результат ночной проверки, когда она уже состоялась.</p>
+      <div id="people" class="people"></div>
+      <p id="verdict-note" class="hint"></p>
+    </section>
+    <section class="panel">
+      <div class="heading">
+        <h2 id="day-title" aria-live="polite"></h2>
+        <div class="turn">
+          <button id="previous" aria-label="Назад">←</button>
+          <button id="next" aria-label="Вперёд">→</button>
+        </div>
+      </div>
+      <p id="context" class="hint"></p>
+      <div id="events" class="events" aria-label="Журнал сообщений"></div>
+    </section>
+  </div>
+</main>
+<script type="application/json" id="replays">__GAME_DATA__</script>
+<script>
+  "use strict";
+  const data = JSON.parse(document.getElementById("replays").textContent);
+  const at = id => document.getElementById(id);
+  const phases = { start: "Начало дня", argument: "Предложения", reply: "Ответы и возражения",
+    choice: "Выбор цели", night: "Ночная проверка", verdict: "Итоговое голосование" };
+  const sources = { host: "Ведущий", primary: "Основной источник", reserve: "Резервный источник" };
+  const ofName = ["Алисы", "Бориса", "Веры", "Глеба", "Дины", "Егора", "Жанны", "Ильи", "Киры"];
+  const privateKinds = new Set(["ballot", "council_proposal", "council_decision"]);
+  const locale = new Intl.NumberFormat("ru-RU", {maximumFractionDigits: 1});
+  let position = 0;
+  const selector = at("preset");
+  const reveal = at("reveal");
+  const groupOptions = new Map();
+  data.forEach((replay, index) => {
+    if (!groupOptions.has(replay.group)) {
+      const group = document.createElement("optgroup");
+      group.label = replay.group;
+      groupOptions.set(replay.group, group);
+      selector.append(group);
+    }
+    const option = document.createElement("option");
+    option.value = index;
+    option.textContent = replay.label;
+    groupOptions.get(replay.group).append(option);
+  });
+  selector.value = "2";
+
+  function entry(replay, event) {
+    const name = value => replay.names[value] ?? sources[value] ?? "Среда";
+    const choices = list => list.map(name).join(", ") || "воздержался";
+    const reading = sign => sign > 0 ? "повышает подозрение" : "снижает подозрение";
+    const actor = name(event.sender);
+    const target = name(event.target);
+    switch (event.kind) {
+      case "day_start": return ["Кандидаты на проверку — " + choices(event.candidates) + "."];
+      case "council_proposal": return [actor + " тайно предлагает голосовать против " + ofName[event.target] + ".", "сговор"];
+      case "council_decision": return ["Сообщники договорились голосовать против " + ofName[event.target] + ".", "сговор"];
+      case "statement": {
+        const action = event.sign > 0 ? " поддерживает подозрения в адрес " : " выступает в защиту ";
+        const text = actor + action + ofName[event.target] + ".";
+        if (event.evidence) return [text, "улика " + event.evidence];
+        return [text, event.counted ? "мнение без улики" : "мнение вне оценки"];
+      }
+      case "ballot": {
+        const text = actor + " → " + choices(event.choices);
+        return [text, event.changed ? "смена выбора: " + choices(event.previous) : "закрытый бюллетень"];
+      }
+      case "nomination": return ["Цель проверки — " + target + ".",
+        event.method === "host" ? "решение ведущего" : "подсчёт голосов"];
+      case "check_request": return [name(event.recipients[0]) + " получает запрос о проверке " + ofName[event.target] + "."];
+      case "check_answer": return [actor + " " + reading(event.sign) + " в отношении " + ofName[event.target] + ".",
+        event.injected && reveal.checked ? "заданная ошибка" : "ответ источника"];
+      case "outage": return [actor + " не ответил на запрос о проверке " + ofName[event.target] + ".", "сбой"];
+      case "disagreement": return ["Источники разошлись. Ночная улика отклонена.", "защита"];
+      case "check_result": return [event.sign === null ? "Проверка завершилась без принятой улики." :
+        "Принята улика, которая " + reading(event.sign) + " в отношении " + ofName[event.target] + ".",
+        event.source === "agreement" ? "два источника согласны" : event.source === "reserve" ? "резерв" : ""];
+      case "trust_change": return ["Изменилось доверие к свидетельствам " + ofName[event.target] + ".",
+        locale.format(event.before) + " → " + locale.format(event.after)];
+      case "rejected_statement": return ["Утверждение игрока " + actor + " отклонено из-за неверного основания."];
+      case "verdict": return ["Итоговое подозрение: " + choices(event.choices) + "."];
+      default: return [];
+    }
+  }
+
+  function node(tag, text, className) {
+    const element = document.createElement(tag);
+    element.textContent = text;
+    if (className) element.className = className;
+    return element;
+  }
+
+  function show() {
+    const replay = data[Number(selector.value)];
+    const final = replay.rules.nights + 1;
+    const labels = ["Вступление", ...Array.from({length: replay.rules.nights},
+      (_, index) => "День " + (index + 1)), "Итог"];
+    at("steps").replaceChildren(...labels.map((label, index) => {
+      const button = node("button", label);
+      if (index === position) button.setAttribute("aria-current", "step");
+      button.addEventListener("click", () => { position = index; show(); at("steps").children[index].focus(); });
+      return button;
+    }));
+    at("day-title").textContent = labels[position];
+    at("seed").textContent = "Мир " + replay.seed;
+    at("previous").disabled = position === 0;
+    at("next").disabled = position === final;
+
+    const history = replay.events.filter(event => position === final ||
+      (event.phase !== "verdict" && event.day <= position));
+    const inspections = new Map(history.filter(event => event.kind === "check_result")
+      .map(event => [event.target, event]));
+    const initial = replay.events[0].clues;
+    at("clue-count").textContent = [...inspections.values()].filter(event => event.sign !== null).length;
+    at("traffic").textContent = history.reduce((sum, event) => sum + event.recipients.length, 0);
+    at("changed").textContent = history.filter(event => event.changed).length;
+    const verdict = position === final ? replay.outcome.verdict : [];
+    at("people").replaceChildren(...replay.names.map((name, index) => {
+      const card = node("div", "", verdict.includes(index) ? "person chosen" : "person");
+      const checked = inspections.get(index);
+      const clue = initial[index];
+      card.append(node("strong", name));
+      if (reveal.checked) card.append(node("span", replay.team.includes(index) ? "Сообщник" : "Житель",
+        replay.team.includes(index) ? "mafia" : "cleared"));
+      card.append(node("span", clue.sign > 0 ? "Улика за подозрение" : "Улика против подозрения"));
+      if (checked) {
+        const status = checked.sign === null ? "Проверен без улики" :
+          checked.sign > 0 ? "Проверка усилила подозрение" : "Проверка снизила подозрение";
+        card.append(node("span", status, checked.sign > 0 ? "suspect" : checked.sign < 0 ? "cleared" : ""));
+      }
+      return card;
+    }));
+    at("verdict-note").textContent = position === final && reveal.checked
+      ? "Сообщников в итоговом списке: " + verdict.filter(index => replay.team.includes(index)).length
+        + " из " + replay.team.length + "." : "";
+    at("context").textContent = position === 0
+      ? "Девять игроков. У каждого три личных наблюдения. За четыре ночи можно проверить четырёх игроков."
+      : position === final ? "Золотая рамка отмечает итоговое подозрение. Тайные роли можно открыть переключателем."
+      : replay.rules.debate ? "Предложения, ответы, выбор цели и ночная проверка."
+      : "Сразу выбирается цель проверки. Открытых переговоров в этом режиме нет.";
+
+    const events = at("events");
+    events.replaceChildren();
+    let phase = "";
+    for (const event of history) {
+      const onPage = position === final ? event.phase === "verdict" : event.day === position;
+      if (!onPage || (!reveal.checked && privateKinds.has(event.kind))) continue;
+      const [text, tag] = entry(replay, event);
+      if (!text) continue;
+      if (phase !== event.phase) {
+        phase = event.phase;
+        events.append(node("h3", phases[phase], "phase"));
+      }
+      const row = node("p", text, "event");
+      if (tag) row.append(node("small", tag));
+      events.append(row);
+    }
+    events.scrollTop = 0;
+  }
+
+  function step(direction) {
+    const last = data[Number(selector.value)].rules.nights + 1;
+    position = Math.max(0, Math.min(last, position + direction));
+    show();
+  }
+  selector.addEventListener("change", () => { position = 0; show(); });
+  reveal.addEventListener("change", show);
+  at("previous").addEventListener("click", () => step(-1));
+  at("next").addEventListener("click", () => step(1));
+  show();
+</script>
+</html>

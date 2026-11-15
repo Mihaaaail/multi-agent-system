@@ -1,0 +1,5 @@
+mafia,scenario,mode,games,check_precision,recall,solved,false_rate,deliveries,statements,vote_changes,usable_clues,wrong_clues,disagreements,outages,unsupported
+2,normal,host,500,0.2975,0.638,0.358,0.10342857142857141,64.0,0.0,0.0,4.0,0.478,0.0,0.0,0.0
+2,normal,vote,500,0.3065,0.645,0.374,0.10142857142857141,108.0,0.0,0.0,4.0,0.5,0.0,0.0,0.0
+3,normal,host,500,0.442,0.6366666666666666,0.17,0.18166666666666667,66.0,0.0,0.0,4.0,0.502,0.0,0.0,0.0
+3,normal,vote,500,0.2705,0.6226666666666666,0.15,0.18866666666666665,118.0,0.0,0.0,4.0,0.536,0.0,0.0,0.0
